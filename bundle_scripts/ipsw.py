@@ -40,7 +40,7 @@ class BundleParser:
 	def diff_llb(self, patch):
 		filePath = patch [ 'File' ]
 		patchFile = patch [ 'Patch' ]
-		encrypt_cmd = "xpwntool %s %s -t %s -x24k -iv %s -k %s" % \
+		encrypt_cmd = "xpwntool %s %s -t %s -xn8824k -iv %s -k %s" % \
 			(self.fileWithSuffix(filePath, ".dec.ap"), self.fileWithSuffix(filePath, '.ap'), \
 			path.join(self.ipswDir, filePath) , patch['IV'], patch['Key'])
 		
@@ -63,8 +63,15 @@ class BundleParser:
 		if path.basename(filePath).startswith('LLB'):
 			self.diff_llb(patch)
 			return 
+		if 'IV' in patch:
+			orig_suffix = '.dec'
+			ap_suffix = '.dec.ap'
+		else:
+			orig_suffix = ''
+			ap_suffix = '.ap'
+		
 		diff_cmd = "bsdiff %s %s %s" % \
-			(self.fileWithSuffix(filePath, '.dec'), self.fileWithSuffix(filePath, '.dec.ap'), path.join(self.bundleDir, patchFile)) 
+			(self.fileWithSuffix(filePath, orig_suffix), self.fileWithSuffix(filePath, ap_suffix), path.join(self.bundleDir, patchFile)) 
 
 		if self.verbose:
 			print "Diffing: '%s'" % diff_cmd
@@ -123,6 +130,13 @@ class BundleParser:
 		if 'Patch' in patch:
 			self.patch_file(patch['File'], patch['Patch'])	
 
+	def genpatch_create_callback(self, patch):
+		if 'Patch' in patch:
+			self.diff_file(patch)
+	
+	def fwpatch_create_callback(self, patch, patchKey):
+		self.genpatch_create_callback(patch)
+
 	def foreach_fwpatch(self, callback):
 		firmwarePatches = self.infoPlist['FirmwarePatches']
 		for patchKey in firmwarePatches:
@@ -140,15 +154,21 @@ class BundleParser:
 				
 	def rdpatch_extract_callback(self, patch):
 		filePath = patch['File']
-		mountpoint = path.join('/Volumes', self.infoPlist['RestoreRamdiskMountVolume'])
+		ramdiskKey = None
+		for key in ['RestoreRamdiskMountVolume','RamdiskMountVolume']:
+			if key in self.infoPlist:
+				ramdiskKey = key
+				break
+		if not ramdiskKey:
+			return
+		mountpoint = path.join('/Volumes', self.infoPlist[ramdiskKey])
 		cp_cmd = "cp %s %s" % (path.join(mountpoint, filePath), self.fileWithSuffix(filePath, ""))
 		
 		if self.verbose:
 			print "cp: '%s'" % cp_cmd
 			
 		os.system(cp_cmd)	
-		
-	
+			
 	def foreach_rdpatch(self, callback):
 		rdPatches = self.infoPlist['RamdiskPatches']
 		for rdKey in rdPatches:
@@ -157,7 +177,9 @@ class BundleParser:
 	
 	
 	def umount_all(self):
-		for key in ['RestoreRamdiskMountVolume', 'RootFilesystemMountVolume']:
+		for key in ['RamdiskMountVolume', 'RestoreRamdiskMountVolume', 'RootFilesystemMountVolume']:
+			if not key in self.infoPlist:
+				continue
 			mountpoint = path.join('/Volumes', self.infoPlist[key])
 			
 			umount_cmd = "hdiutil detach %s" % mountpoint
@@ -185,12 +207,14 @@ class BundleParser:
 
 	
 	def create_patch_files(self):
-		infoPlist = plistlib.readPlist(path.join(self.bundleDir, 'Info.plist'))
-		firmwarePatches = infoPlist['FirmwarePatches']
-                for patchKey in firmwarePatches:
-			patch = firmwarePatches[patchKey]
-			if 'Patch' in patch:
-				self.diff_file(patch)
+		self.infoPlist = plistlib.readPlist(path.join(self.bundleDir, 'Info.plist'))
+
+		self.foreach_fwpatch(self.fwpatch_create_callback)
+
+		self.foreach_rdpatch(self.genpatch_create_callback)
+
+		self.foreach_fspatch(self.genpatch_create_callback)
+
 	
 def main():
 	parser = OptionParser()
