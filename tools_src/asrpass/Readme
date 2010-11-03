@@ -1,0 +1,3 @@
+Install the compiled lib to /usr/lib/asrpass.dylib
+Copy asr to /tmp/asr and copy required private frameworks to the device
+To run: LD_INSERT_LIBRARIES=/usr/lib/asrpass.dylib ASR_RAMDISK=CHANGEME_path_to_decrypted_ramdisk_dmg ASR_GETPASS_PROC=CHANGEME_address_of_getpassphrase_in_asr /tmp/asr
