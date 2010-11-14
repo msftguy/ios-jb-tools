@@ -115,7 +115,7 @@ std::vector<ratingsVector> calculate_top_matches(
 	const size_t step_size = 1000;
 	const size_t vector_size = top_size + step_size;
 
-	const ratingAtPos defaultRating(0, 0);
+	const ratingAtPos defaultRating(0.0f, 0);
 	const ratingsVector defaultRatingsVector(vector_size, defaultRating);
 	
 	std::vector<ratingsVector> ratingsVectors(patterns.size(), defaultRatingsVector);
@@ -314,12 +314,14 @@ void diffFiles(const std::string origPath, const std::string patchedPath, const 
 	boost::property_tree::json_parser::write_json(deltaPath, tree);
 }
 
-void topX(const ratingsVector &r, int patchOffset) 
+void topX(const ratingsVector &r, int patchOffset, std::string prefix = "");
+
+void topX(const ratingsVector &r, int patchOffset, std::string prefix)
 {
-	std::cout << "Top" << r.size() << ": " << std::endl;
+	std::cout << prefix << "Top" << r.size() << ": " << std::endl;
 	for (unsigned int j = 0; j < r.size(); ++j) {
 		const ratingAtPos &x = r[j];
-		std::cout << x.first << " at " << std::hex << x.second + patchOffset << std::dec << std::endl;		
+		printf("%s%.2f at 0x%08X\n", prefix.c_str(), x.first, x.second + patchOffset);		
 	}
 }
 
@@ -353,31 +355,41 @@ void patchFiles(const std::string origPath, const std::string patchedPath, const
 	const int topSize = 5;
 
 	auto matches = calculate_top_matches(orig, topSize, patterns, patchLocations);
+	unsigned int cApplied = 0, cSkipped = 0;
 	for (unsigned int i = 0; i < matches.size(); ++i) {
 		ratingsVector &r = matches[i];
 		patch &p = patches[i];
-		std::cout << "Patch " << i + 1 << std::endl;
+		printf("///---[%u]\n", i + 1);
 		float exact = .9999f;
 		bool fApply = false;
+		size_t patchLocation = r[0].second + p.PatchOffset();
 		if (r[0].first < exact) {
-			std::cout << "No exact match" << std::endl;
-			topX(r, p.PatchOffset());
+			std::cout << "|\tNo exact match" << std::endl;
+			topX(r, p.PatchOffset(), "|\t");
 			if (100.0 * r[0].first > g_fuzzLevel)
 				fApply = true;
 		} else if (r[1].first >= exact) {
-			std::cout << "Multiple matches" << std::endl;
-			topX(r, p.PatchOffset());
+			std::cout << "|\tMultiple matches" << std::endl;
+			topX(r, p.PatchOffset(), "|\t");
 		} else {
-			std::cout << "Exactly one match at " << std::hex << r[0].second + p.PatchOffset() << std::dec << std::endl;
+			printf("|\tExactly one match at 0x%08X\n", patchLocation);
 			fApply = true;
 		}
 		if (fApply) {
-			memcpy(patched.data() + r[0].second + p.PatchOffset(), p.PatchBytes().data(), p.PatchBytes().size());
+			printf("\\\\\\---Patch %u applied at 0x%08X\n", i + 1, patchLocation);						
+			memcpy(patched.data() + patchLocation, p.PatchBytes().data(), p.PatchBytes().size());
+			++cApplied;
+		} else {
+			printf("\\\\\\---Patch %u NOT applied, TODO item #%u\n", i + 1, cSkipped + 1);
+			++cSkipped;
 		}
 	}
+	printf("===============================================================================\n");
+	printf("%u of %u applied (%.0f%%)\n",cApplied, matches.size(), 100.0 * cApplied / matches.size());			
 }
 
-int main(int argc, char** argv) {	
+int main(int argc, char** argv) {
+	
 	init_diff_byte_rating();
 
 	// Declare the supported options.
