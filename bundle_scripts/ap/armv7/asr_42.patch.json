@@ -1,0 +1,13 @@
+{
+    "patches":
+    [
+        {
+            "patternBytes": "78 44 0f f0 b4 e8 2f e0 df f8 e0 00 78 44 0f f0 ae e8",
+            "patchBytes": "fd e7",
+            "patchOffset": "8",
+            "secondMatchCorrelation": "0.6840381026268005",
+            "adjustedSecondMatchCorrelation": "0.6220859132124569",
+            "comment": "Original offset: 13e86 [branch from 'Image failed signature verification' label to a BL at the very end of 'Image passed signature verification' block]"
+        }
+    ]
+}
