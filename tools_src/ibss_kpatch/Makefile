@@ -1,6 +1,9 @@
 AR = ar
 CP = cp
-ARMAS = arm-elf-as
+#Macports:
+#ARMAS = arm-elf-as
+#Fink:
+ARMAS = arm-linux-as
 OBJCOPY = arm-elf-objcopy
 UNAME := $(shell uname -s)
 INCLUDE = -I./../..

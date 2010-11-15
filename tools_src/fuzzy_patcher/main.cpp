@@ -18,6 +18,7 @@ namespace po = boost::program_options;
 typedef std::pair<float, size_t> ratingAtPos;
 typedef std::vector<ratingAtPos> ratingsVector;
 typedef std::vector<unsigned char> byteString;
+typedef std::pair<int,int> patchLocation;
 
 static int g_fuzzLevel = 100;
 static bool g_verbose = false;
@@ -84,7 +85,7 @@ __inline float correlate(const unsigned char* p1, const unsigned char* p2, size_
 
 std::vector<float>weightVector(size_t size, size_t patchStart, size_t patchSize)
 {
-	auto patchEnd = patchStart - patchSize;
+	size_t patchEnd = patchStart - patchSize;
 	std::vector<float>weightVector(size, 0.0f);
 	for (size_t i = 0; i < size; ++i) {
 		float weightValue;
@@ -100,11 +101,16 @@ std::vector<float>weightVector(size_t size, size_t patchStart, size_t patchSize)
 	return weightVector;
 }
 
+int ratingCompareProc(ratingAtPos& v1, ratingAtPos& v2)
+{
+	return v1.first > v2.first;
+}
+
 std::vector<ratingsVector> calculate_top_matches(
 	boost::iostreams::mapped_file_source image,
 	size_t top_size,
 	std::vector<byteString> patterns,
-	std::vector<std::pair<int,int>> patchLocations
+	std::vector<patchLocation> patchLocations
 	) 
 {
 	const size_t step_size = 1000;
@@ -115,18 +121,18 @@ std::vector<ratingsVector> calculate_top_matches(
 	
 	std::vector<ratingsVector> ratingsVectors(patterns.size(), defaultRatingsVector);
 
-	std::vector<std::vector<float>> weightVectors;
+	std::vector<std::vector<float> > weightVectors;
 
 	for (unsigned int i = 0; i < patchLocations.size(); ++i) {
-		auto &pl = patchLocations[i];
+		patchLocation &pl = patchLocations[i];
 		weightVectors.push_back(weightVector(patterns[i].size(), pl.first, pl.second));
 	}
 
 	for (unsigned int j = 0; j <= image.size() / step_size; ++j) {
 		for (unsigned int n = 0; n < patterns.size(); ++n) {
-			auto &pat = patterns[n];
-			auto &v = ratingsVectors[n];
-			auto &weight = weightVectors[n];
+			byteString &pat = patterns[n];
+			ratingsVector &v = ratingsVectors[n];
+			std::vector<float> &weight = weightVectors[n];
 			size_t pos_base = j * step_size;
 			size_t adjustedSize = image.size() - pat.size();
 			if (pos_base >= adjustedSize)
@@ -141,16 +147,16 @@ std::vector<ratingsVector> calculate_top_matches(
 				p.first = correlate(reinterpret_cast<const unsigned char*>(image.data() + pos), pat.data(), pat.size(), weight.data());
 				p.second = pos;
 			}
-			std::partial_sort(v.begin(), v.begin() + top_size, v.end(), [](ratingAtPos& v1, ratingAtPos& v2){return v1.first > v2.first;});
+			std::partial_sort(v.begin(), v.begin() + top_size, v.end(), ratingCompareProc);
 		}
 	}
 
 	for (unsigned int n = 0; n < patterns.size(); ++n) {
-		auto &pat = patterns[n];
-		auto &v = ratingsVectors[n];
+		byteString &pat = patterns[n];
+		ratingsVector &v = ratingsVectors[n];
 		v.resize(top_size);
 		float calibration = 1.0f / correlate(pat.data(), pat.data(), pat.size(), weightVectors[n].data());
-		for ( auto i = v.begin(); i != v.end(); ++i) {
+		for (ratingsVector::iterator i = v.begin(); i != v.end(); ++i) {
 			i->first *= calibration;
 		}
 	}
@@ -192,15 +198,15 @@ patch::patch(boost::iostreams::mapped_file_source origImage, const unsigned char
 	for (;;) { 
 		std::vector<byteString> patterns;
 		if (extend > start) 
-			throw std::exception("Start of file hit while extending the match pattern!");
+			throw std::runtime_error("Start of file hit while extending the match pattern!");
 		size_t newStart = start - extend;
 		size_t newEnd = end + extend;
 		if (newEnd > origImage.size()) 
-			throw std::exception("End of file hit while extending the match pattern!");
+			throw std::runtime_error("End of file hit while extending the match pattern!");
 		patterns.push_back(byteString(pOrig + newStart, pOrig + newEnd));
-		std::vector<std::pair<int,int>> patchLocations;
-		patchLocations.push_back(std::pair<int, int>(extend, end - start));
-		auto ratings = calculate_top_matches(origImage, 2, patterns, patchLocations);
+		std::vector<patchLocation> patchLocations;
+		patchLocations.push_back(patchLocation(extend, end - start));
+		std::vector<ratingsVector> ratings = calculate_top_matches(origImage, 2, patterns, patchLocations);
 		secondMatchCorrelation = ratings[0][1].first;
 		float extendBasedAdjustmentCoefficient = pow(extend / 16.0f, 2);
 		adjustedSecondMatchCorrelation = pow(secondMatchCorrelation, 1.0 + extendBasedAdjustmentCoefficient);
@@ -263,8 +269,8 @@ int  patch::PatchOffset()
 
 void diffFiles(const std::string origPath, const std::string patchedPath, const std::string deltaPath) 
 {
-	auto orig = boost::iostreams::mapped_file_source(origPath);
-	auto patched = boost::iostreams::mapped_file_source(patchedPath);
+	boost::iostreams::mapped_file_source orig = boost::iostreams::mapped_file_source(origPath);
+	boost::iostreams::mapped_file_source patched = boost::iostreams::mapped_file_source(patchedPath);
 
 	if (orig.size() != patched.size()) {
 		std::cerr << "Orig and patched file must be of the same size!";
@@ -296,12 +302,12 @@ void diffFiles(const std::string origPath, const std::string patchedPath, const 
 	}
 
 	if (inPatch) {
-		throw std::exception("Last change too close to EOF!"); 
+		throw std::runtime_error("Last change too close to EOF!"); 
 	}
 
 	boost::property_tree::ptree tree;
 	boost::property_tree::ptree patchesNode;
-	for (auto p = patches.begin(); p != patches.end(); ++p) {		
+	for (std::vector<patch>::iterator p = patches.begin(); p != patches.end(); ++p) {		
 		patchesNode.push_back( std::make_pair("", p->ptreeNode()) );
 	}
 	tree.put_child("patches", patchesNode);
@@ -322,11 +328,11 @@ void topX(const ratingsVector &r, int patchOffset, std::string prefix)
 
 void patchFiles(const std::string origPath, const std::string patchedPath, const std::string deltaPath) 
 {
-	auto orig = boost::iostreams::mapped_file_source(origPath);
+	boost::iostreams::mapped_file_source orig = boost::iostreams::mapped_file_source(origPath);
 	boost::iostreams::mapped_file_params params;
 	params.new_file_size = orig.size();
 	params.path = patchedPath;
-	auto patched = boost::iostreams::mapped_file_sink(params);
+	boost::iostreams::mapped_file_sink patched = boost::iostreams::mapped_file_sink(params);
 	memcpy(patched.data(), orig.data(), orig.size());
 	
 	boost::property_tree::ptree tree;
@@ -334,22 +340,22 @@ void patchFiles(const std::string origPath, const std::string patchedPath, const
 
 	std::vector<patch>patches;
 	boost::property_tree::ptree patchesNode = tree.get_child("patches");
-	for (auto p = patchesNode.begin(); p != patchesNode.end(); ++p) {		
+	for (boost::property_tree::ptree::iterator p = patchesNode.begin(); p != patchesNode.end(); ++p) {               
 		patches.push_back(patch(p->second));
 	}
 	if (g_verbose) {
 		std::cout << patches.size() << " patches loaded" << std::endl;
 	}
 	std::vector<byteString> patterns;
-	std::vector<std::pair<int,int>> patchLocations;
-	for (auto p = patches.begin(); p != patches.end(); ++p) {
+	std::vector<patchLocation> patchLocations;
+	for (std::vector<patch>::iterator p = patches.begin(); p != patches.end(); ++p) {
 		patterns.push_back(p->PatternBytes());
-		patchLocations.push_back(std::pair<int,int>(p->PatchOffset(), p->PatchBytes().size()));
+		patchLocations.push_back(patchLocation(p->PatchOffset(), p->PatchBytes().size()));
 	}
 
 	const int topSize = 5;
 
-	auto matches = calculate_top_matches(orig, topSize, patterns, patchLocations);
+	std::vector<ratingsVector> matches = calculate_top_matches(orig, topSize, patterns, patchLocations);
 	unsigned int cApplied = 0, cSkipped = 0;
 	for (unsigned int i = 0; i < matches.size(); ++i) {
 		ratingsVector &r = matches[i];
@@ -404,7 +410,7 @@ int main(int argc, char** argv) {
 	try {
 		po::store(po::parse_command_line(argc, argv, desc), vm);
 		po::notify(vm);
-	} catch(std::exception ex) {
+	} catch(std::exception &ex) {
 		std::cerr << "Argument exception : " << ex.what() << std::endl;
 		std::cout << desc << std::endl;
 		return 1;
@@ -432,7 +438,7 @@ int main(int argc, char** argv) {
 		} else if (vm.count("patch")) {
 			patchFiles(orig, patched, delta);
 		}
-	} catch (std::exception ex) {
+	} catch (std::exception &ex) {
 		std::cerr << "Error: " << ex.what() << std::endl;
 		exit(1);
 	}
