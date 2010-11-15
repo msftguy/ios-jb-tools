@@ -1,10 +1,5 @@
 #include <stdio.h>
 
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <io.h>
-
 #include <vector>
 #include <utility>
 #include <algorithm>
