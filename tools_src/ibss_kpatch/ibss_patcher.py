@@ -80,9 +80,12 @@ def byte_search(image, bytes):
     return -1
 
 if __name__ == '__main__':
-    kpatches = diff_kernel(sys.argv[3], sys.argv[4])
-    ibss = ibss_default_patches(sys.argv[1], sys.argv[2])
-    ibss_add_kpf(ibss, sys.argv[5])
-    ibss_add_kpatches(ibss, kpatches)
+	if len(sys.argv) < 6:
+		print "Usage: ibss_patcher ibss_decrypted_orig ibss_out kernelcache_decrypted_orig kernelcache_decrypted_patched ibss_patchproc.bin"
+		exit(1)
+	kpatches = diff_kernel(sys.argv[3], sys.argv[4])
+	ibss = ibss_default_patches(sys.argv[1], sys.argv[2])
+	ibss_add_kpf(ibss, sys.argv[5])
+	ibss_add_kpatches(ibss, kpatches)
     
     

@@ -1,0 +1,5 @@
+Patches:
+nor - disable sigchecks in llb/iboot/ibss/ibec
+kernelcache_armv7 - disable sigchecks and sandboxing
+kernelcache_patchedNorProcs_armv7 - above plus allow flashing unsigned nor files (only relevant for devices succeptible to the 24K exploit)
+asr - patches asr on 4.2; doesn't work on 4.1 (they made the code relocatable which changed binary patterns significantly)
