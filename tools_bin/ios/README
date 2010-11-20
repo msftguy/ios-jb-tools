@@ -1,0 +1,2 @@
+asrpass.dylib - see tools_src\asrpass\Readme
+ibss_patchproc.bin - prebuilt asm sequence for ibss kernel patching, to be used with ibss_patcher.py
