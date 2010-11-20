@@ -273,8 +273,7 @@ void diffFiles(const std::string origPath, const std::string patchedPath, const 
 	boost::iostreams::mapped_file_source patched = boost::iostreams::mapped_file_source(patchedPath);
 
 	if (orig.size() != patched.size()) {
-		std::cerr << "Orig and patched file must be of the same size!";
-		exit(1);
+		throw std::runtime_error("Orig and patched file must be of the same size!");
 	}
 
 	std::vector<patch> patches;
