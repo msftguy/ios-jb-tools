@@ -126,6 +126,8 @@ class BundleParser:
 		os.system(mount_cmd)
 
 	def fwpatch_decrypt_callback(self, patch, patchKey):
+		if not 'IV' in patch:
+			return
 		self.decrypt_file(patch['File'], patch['IV'], patch['Key'])
 		if 'Patch' in patch:
 			self.patch_file(patch['File'], patch['Patch'])	
