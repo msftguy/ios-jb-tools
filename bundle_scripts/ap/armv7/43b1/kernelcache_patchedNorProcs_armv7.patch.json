@@ -1,0 +1,93 @@
+{
+    "patches":
+    [
+        {
+            "patternBytes": "1d 93 2a d1 16 f0 02 0f 2e d1 63 08 03 f0 01 05 e3 0a",
+            "patchBytes": "00 20",
+            "patchOffset": "8",
+            "secondMatchCorrelation": "0.6270216107368469238",
+            "adjustedSecondMatchCorrelation": "0.5579600913298432552",
+            "comment": "Original offset: 42d3c"
+        },
+        {
+            "patternBytes": "00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+            "patchBytes": "01",
+            "patchOffset": "64",
+            "secondMatchCorrelation": "0.982630312442779541",
+            "adjustedSecondMatchCorrelation": "0.7423909568349120747",
+            "comment": "Original offset: 27cb5c"
+        },
+        {
+            "patternBytes": "79 69 08 60 2f e0 4f f0 ff 30 2c e0 57 f8 c8 2c 57 f8",
+            "patchBytes": "00 00",
+            "patchOffset": "8",
+            "secondMatchCorrelation": "0.7436900138854980469",
+            "adjustedSecondMatchCorrelation": "0.6906212503018941407",
+            "comment": "Original offset: 64b55e"
+        },
+        {
+            "patternBytes": "02 db 01 34 b4 42 ea d1 00 20 5d f8 04 8b f0 bd 00",
+            "patchBytes": "01",
+            "patchOffset": "8",
+            "secondMatchCorrelation": "0.7396843433380126953",
+            "adjustedSecondMatchCorrelation": "0.6859745963129580959",
+            "comment": "Original offset: 64c3da"
+        },
+        {
+            "patternBytes": "00 94 01 95 02 95 03 94 ff f7 25 ff f8 b1 1c e0 00 21 5a 46",
+            "patchBytes": "00 20 00 20",
+            "patchOffset": "8",
+            "secondMatchCorrelation": "0.6338775753974914551",
+            "adjustedSecondMatchCorrelation": "0.5655965283485352435",
+            "comment": "Original offset: 79242a"
+        },
+        {
+            "patternBytes": "1d 49 50 46 05 aa 0c ca ff f7 0c ff 00 38 18 bf 01 20 14 e0",
+            "patchBytes": "00 20 00 20",
+            "patchOffset": "8",
+            "secondMatchCorrelation": "0.6277538537979125977",
+            "adjustedSecondMatchCorrelation": "0.5587747004703277343",
+            "comment": "Original offset: 79245c"
+        },
+        {
+            "patternBytes": "98 02 21 7c 4b 98 47 00 28 40 f0 cc 80 04 98 ff f7",
+            "patchBytes": "20",
+            "patchOffset": "8",
+            "secondMatchCorrelation": "0.6898481249809265137",
+            "adjustedSecondMatchCorrelation": "0.6286976836635521648",
+            "comment": "Original offset: 7927f3"
+        },
+        {
+            "patternBytes": "47 00 28 40 f0 cc 80 04 98 ff f7 ab fd 04 46 00 28 40 f0 c5 80 9a f8 11 30 9a f8 10 20 42 ea 03 22",
+            "patchBytes": "20",
+            "patchOffset": "16",
+            "secondMatchCorrelation": "0.6479318141937255859",
+            "adjustedSecondMatchCorrelation": "0.4198156358443725367",
+            "comment": "Original offset: 792801"
+        },
+        {
+            "patternBytes": "1f 4c 1e e0 28 46 51 46 ff f7 50 fc 00 b3 2c 4b e8 6f 51 46",
+            "patchBytes": "01 20 01 20",
+            "patchOffset": "8",
+            "secondMatchCorrelation": "0.5975447297096252441",
+            "adjustedSecondMatchCorrelation": "0.5253672849154079616",
+            "comment": "Original offset: 792948"
+        },
+        {
+            "patternBytes": "a0 47 08 b1 28 46 30 e0 4f f0 ff 30 2d e0 57 f8 d0 1c 57 f8",
+            "patchBytes": "00 20 00 20",
+            "patchOffset": "8",
+            "secondMatchCorrelation": "0.7110352516174316406",
+            "adjustedSecondMatchCorrelation": "0.6529259292612007437",
+            "comment": "Original offset: 7939e2"
+        },
+        {
+            "patternBytes": "ed 80 46 9b 4b b1 85 4b 1b 68 13 f0 04 0f 04 d0 51 46 83 4b 83 48",
+            "patchBytes": "06 9b 0b b1 00 23",
+            "patchOffset": "8",
+            "secondMatchCorrelation": "0.6711260676383972168",
+            "adjustedSecondMatchCorrelation": "0.6074424448294714063",
+            "comment": "Original offset: 7cccac"
+        }
+    ]
+}
