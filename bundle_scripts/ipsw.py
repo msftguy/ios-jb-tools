@@ -68,7 +68,7 @@ class BundleParser:
     def fuzzy_patch(self, patch, origPath, patchedPath):
         deltaFile = patch['Pattern']
         fzp_cmd = "fuzzy_patcher --fuzz 80 --patch --orig %s --patched %s --delta %s" % \
-            (origPath, patchedPath, path.join(self.outDir, "_json", deltaFile + ".delta.json")) 
+            (origPath, patchedPath, path.join(self.outDir, "_json", deltaFile + ".patch.json")) 
         
         if self.verbose:
             print "Fuzzy patching: '%s'" % fzp_cmd
@@ -82,9 +82,7 @@ class BundleParser:
     def diff_file(self, patch, isFirmwarePatch):
         filePath = patch['File']
         patchFile = patch['Patch']
-        if path.basename(filePath).startswith('LLB') and self.x_opt:
-            self.diff_llb(patch, self.x_opt)
-            return 
+
         if isFirmwarePatch:
             orig_suffix = '.dec'
             ap_suffix = '.dec.ap'
@@ -98,6 +96,10 @@ class BundleParser:
         if 'Pattern' in patch:
             self.fuzzy_patch(patch, origPath, patchedPath)
         
+        if path.basename(filePath).startswith('LLB') and self.x_opt:
+            self.diff_llb(patch, self.x_opt)
+            return 
+
         diff_cmd = "bsdiff %s %s %s" % \
             (origPath, patchedPath, path.join(self.bundleDir, patchFile)) 
 
