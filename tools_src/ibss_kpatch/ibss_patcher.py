@@ -57,16 +57,20 @@ def ibxx_locate_bl(ibss):
     # pattern search up until we can find the second BL instruction
     # BL pattern is xx Fx xx F8+
     max_search = 0x100
-    mask = 0xF800FF00
-    instr = 0xF800F000
-    bl_found = 0
+    mask = 0xD000F800
+    instr = 0xD000F000
+    first_bl = 0
+    found = False
     for i in range(printf_arg_xref, printf_arg_xref - max_search, -2):
         dw = struct.unpack_from("<L", ibss, i)[0]
         if dw & mask == instr:
-            bl_found += 1
-            if bl_found == 2:
-                break
-    if bl_found != 2:
+            if first_bl == 0:
+                first_bl = i
+            else:
+                if first_bl - i >= 4:
+                    found = True
+                    break
+    if not found:
         raise Exception("Could not find a printf call in the vicinity of string xref :-(")
     print "printf call located at 0x%X (0x%X VA)" % (i, i + baseaddr)
     return i
