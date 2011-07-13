@@ -1,0 +1,6 @@
+asrpass - in case Apple changes its password generation algorithm in asr, you can use this to generate vfdecrypt password (not the same thing as vfdecrypt key) using Apple's own asr binary.
+ConsoleApplication1 - First version of fuzzy_patcher, written in C#
+dif_patcher - apply .dif file produced by IDA to binary. C# (just write your own in Python if you're not on Windows)
+fuzzy_patcher - probabilistic pattern matching and patch extraction tool; used to transfer binary patches to new FW versions without having to boot IDA. Rewritten in C++ (needs Boost)
+ibss_kpatch - Python script that embeds kernel patches into iBSS (fw<5.0) or iBEC (fw>=5.0), to be applied on the fly during bootx command
+idapy - IDA (idapython) scripts

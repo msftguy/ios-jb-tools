@@ -1,0 +1,1 @@
+rel_addr_llvm.py - Correctly recognize MOV Rn, imm16; MOVT Rn, imm16; ADD Rn, PC as relative addressing. IDA 6.1 (at least the demo ver) seems to be having problems with that sequence, making CommCenterClassic hard to grok on 5.0 Beta 3
