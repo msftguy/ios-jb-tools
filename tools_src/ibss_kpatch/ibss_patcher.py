@@ -4,6 +4,8 @@ import sys
 import mmap
 import struct
 
+load_addr = 0
+
 def mmap_file_ro(filename):
     return mmap.mmap(os.open(filename, os.O_RDONLY),
                      0, access=mmap.ACCESS_READ)
@@ -41,11 +43,71 @@ def ibss_default_patches(origIbss, patchedIbss):
 
 def ibxx_load_addr(ibss):
     # load addr+ some small value at 0x20, discard the lsb
-    load_addr = struct.unpack_from("<L", ibss, 0x20)[0] & ~0xff
-    print "iBSS/iBEC load addr is 0x%X" % load_addr
-    return load_addr
+    global load_addr
+    if load_addr == 0:
+        load_addr = struct.unpack_from("<L", ibss, 0x20)[0] & ~0xff
     
-def ibxx_locate_bl(ibss):
+        print "iBSS/iBEC load addr is 0x%X" % load_addr
+    return load_addr
+
+def pattern_search(bin, offs, pattern, mask, len, dir, step):
+    if dir < 0:
+        dir = -1
+    else:
+        dir = 1
+    step = abs(step)        
+    for i in range(offs, offs + dir * len, dir * step):
+        dw = struct.unpack_from("<L", bin, i)[0]
+        if dw & mask == pattern:
+            return i
+    return -1
+
+def bl_search_up(bin, start_addr, len):
+    # BL pattern is xx Fx xx F8+
+    return pattern_search(bin, start_addr, 0xD000F000, 0xD000F800, len, -1, 2)
+
+def bl_search_down(bin, start_addr, len):
+    # BL pattern is xx Fx xx F8+
+    return pattern_search(bin, start_addr, 0xD000F000, 0xD000F800, len, 1, 2)
+
+def ldr_search_up(bin, start_addr, len):
+    # LDR pattern is xx xx 48 xx ( 00 00 f8 00 )
+    return pattern_search(bin, start_addr, 0x00004800, 0x0000F800, len, -1, 2)
+
+
+def ldr32_search_up(bin, start_addr, len):
+    # LDR32 pattern is DF F8 xx xx
+    return pattern_search(bin, start_addr, 0x0000F8DF, 0x0000FFFF, len, -1, 2)
+
+def locate_ldr_xref(bin, xref_target):
+    # Search for Thumb-2 4-byte LDR first
+    i = xref_target
+    min_addr = xref_target - 0x1000
+    baseaddr = ibxx_load_addr(ibss)
+    while True:
+        i = ldr32_search_up(bin, i, i - min_addr)
+        if i < 0:
+            break
+        dw = struct.unpack_from("<L", bin, i)[0]
+        ldr_target = ((i + 4) & ~3) + ((dw >> 16) & 0xfff)
+        if ldr_target == xref_target:
+            return i
+        i -= 4 # Could be 4, but leaving this for when we implement i8 LDRs
+
+    # Now search for Thumb-1 LDR
+    i = xref_target
+    min_addr = xref_target - 0x400
+    while True:
+        i = ldr_search_up(bin, i, i - min_addr)
+        if i < 0:
+            return -1
+        dw = struct.unpack_from("<L", bin, i)[0]
+        ldr_target = ((i + 4) & ~3) + (((dw >> 16) & 0xff) << 2)
+        if ldr_target == xref_target:
+            return i
+        i -= 2
+
+def ibxx_locate_bl_old(ibss):
     kc_printf_arg = "kernelcache prepped at address 0x%"
     printf_arg_loc = byte_search(ibss, kc_printf_arg)
     if printf_arg_loc < 0:
@@ -55,27 +117,37 @@ def ibxx_locate_bl(ibss):
     if printf_arg_xref < 0:
         raise Exception("Could not locate any xrefs to '%s' string!" % kc_printf_arg)
     # pattern search up until we can find the second BL instruction
-    # BL pattern is xx Fx xx F8+
-    max_search = 0x100
-    mask = 0xD000F800
-    instr = 0xD000F000
-    first_bl = 0
-    found = False
-    for i in range(printf_arg_xref, printf_arg_xref - max_search, -2):
-        dw = struct.unpack_from("<L", ibss, i)[0]
-        if dw & mask == instr:
-            if first_bl == 0:
-                first_bl = i
-            else:
-                if first_bl - i >= 4:
-                    found = True
-                    break
-    if not found:
+    bl1 = bl_search_up(ibss, printf_arg_xref, len)
+    if bl1 < 0:
+        raise Exception("Could not locate BL before kc_printf_arg!")
+    
+    bl2 = bl_search_up(ibss, bl1 - 4, len)
+    if bl2 < 0:
         raise Exception("Could not find a printf call in the vicinity of string xref :-(")
-    print "printf call located at 0x%X (0x%X VA)" % (i, i + baseaddr)
-    return i
-        
-        
+    print "printf call located at 0x%X (0x%X VA)" % (bl2, bl2 + baseaddr)
+    return bl2
+
+def ibxx_locate_bl(ibss):
+    kc_printf_arg = "Uncompressed kernel cache at 0x%"
+    printf_arg_loc = byte_search(ibss, kc_printf_arg)
+    if printf_arg_loc < 0:
+        raise Exception("Could not locate the printf argument (%s)!" % kc_printf_arg)
+    baseaddr = ibxx_load_addr(ibss)
+    print "String '%s' found at 0x%X (0x%X VA)" % (kc_printf_arg, printf_arg_loc, baseaddr + printf_arg_loc)
+    printf_arg_xref = byte_search(ibss, struct.pack("<L", baseaddr + printf_arg_loc))
+    if printf_arg_xref < 0:
+        raise Exception("Could not locate any xrefs to '%s' string!" % kc_printf_arg)
+
+    print "xref1 at 0x%X (0x%X VA)" % (printf_arg_xref, baseaddr + printf_arg_xref)
+    xr_ldr = locate_ldr_xref(ibss, printf_arg_xref)
+    if xr_ldr < 0:
+        raise Exception("Could not find an LDR instruction using string xref :-(")
+    print "xref2 at 0x%X (0x%X VA)" % (xr_ldr, baseaddr + xr_ldr)
+    printf_bl = bl_search_down(ibss, xr_ldr, 0x30)
+    if printf_bl < 0:
+        raise Exception("Could not find a printf call after LDR instruction :-(")      
+    print "printf call at 0x%X (0x%X VA)" % (printf_bl, printf_bl + baseaddr)
+    return printf_bl
 
 def ibss_add_kpf(ibss, kpfFile):
     kpf = open(kpfFile, "rb").read()
@@ -100,7 +172,7 @@ def ibss_add_kpf(ibss, kpfFile):
     
     
 def ibss_add_kpatches(ibss, kpatches):
-    magic = 0xDEADB33F
+    magic = 0xDEADB34F
     for i in range(0, len(ibss), 4):
         dw = struct.unpack_from("<L", ibss, i)[0]
         if dw == magic:
