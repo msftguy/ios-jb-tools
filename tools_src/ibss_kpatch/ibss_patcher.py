@@ -92,17 +92,18 @@ def locate_ldr_xref(bin, xref_target):
         ldr_target = ((i + 4) & ~3) + ((dw >> 16) & 0xfff)
         if ldr_target == xref_target:
             return i
-        i -= 4 # Could be 4, but leaving this for when we implement i8 LDRs
-
+        i -= 4
+    
     # Now search for Thumb-1 LDR
     i = xref_target
-    min_addr = xref_target - 0x400
+    min_addr = xref_target - 0x420
     while True:
         i = ldr_search_up(bin, i, i - min_addr)
         if i < 0:
+            print "ldr_search_up(0x%x->0x%x), fail" % (i, i - min_addr)
             return -1
         dw = struct.unpack_from("<L", bin, i)[0]
-        ldr_target = ((i + 4) & ~3) + (((dw >> 16) & 0xff) << 2)
+        ldr_target = ((i + 4) & ~3) + ((dw & 0xff) << 2)
         if ldr_target == xref_target:
             return i
         i -= 2
