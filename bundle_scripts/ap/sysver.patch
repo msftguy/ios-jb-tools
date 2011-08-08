@@ -1,0 +1,10 @@
+--- SystemVersion.plist	2011-08-08 04:44:36.000000000 +0400
++++ SystemVersion.plist.ap	2011-08-08 04:46:18.000000000 +0400
+@@ -12,7 +12,5 @@
+ 	<string>iPhone OS</string>
+ 	<key>ProductVersion</key>
+ 	<string>5.0</string>
+-	<key>ReleaseType</key>
+-	<string>Beta</string>
+ </dict>
+ </plist>

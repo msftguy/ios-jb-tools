@@ -13,7 +13,20 @@ class BundleParser:
         self.ipswDir = ipswDir
         self.outDir = outDir
         self.verbose = verbose
+        self.kcOrig = ""
+        self.kcPatched = ""
+        self.basedir = os.path.dirname(__file__) + "/../"
+        self.tooldir =  self.basedir + "tools_bin/osx/"
 
+
+    def run(self, cmd, comment):
+        if self.verbose:
+            print "%s: %s" % (comment, cmd)
+        result = os.system(cmd)
+        if result != 0:
+            raise Exception("Command %s failed with return code %s" % \
+                            (cmd, result / 256))
+    
     def fileWithSuffix(self, filePath, suffix):
         if filePath.lower().endswith('.dmg'):
             filePath = filePath[:-4]
@@ -21,58 +34,85 @@ class BundleParser:
         return path.join(self.outDir, path.basename(filePath) + suffix)	
 
     def unpack_file(self, filePath):
-        decrypt_cmd = "xpwntool %s %s" % \
-            (path.join(self.ipswDir, filePath), self.fileWithSuffix(filePath, '.dec'))
-        if self.verbose:
-            print "Unpacking: '%s'" % decrypt_cmd
-        os.system(decrypt_cmd)
+        decrypt_cmd = "%s/xpwntool %s %s" % \
+            (self.tooldir, path.join(self.ipswDir, filePath), self.fileWithSuffix(filePath, '.dec'))
+
+        self.run(decrypt_cmd, "Unpacking")
 
     def decrypt_file(self, filePath, iv, key):
-        decrypt_cmd = "xpwntool %s %s -iv %s -k %s" % \
-            (path.join(self.ipswDir, filePath), self.fileWithSuffix(filePath, '.dec'), iv, key)
-        if self.verbose:
-            print "Decrypting: '%s'" % decrypt_cmd
-        os.system(decrypt_cmd)
+        decrypt_cmd = "%s/xpwntool %s %s -iv %s -k %s" % \
+            (self.tooldir, path.join(self.ipswDir, filePath), self.fileWithSuffix(filePath, '.dec'), iv, key)
+
+        self.run(decrypt_cmd, "Decrypting")
 
     def patch_file(self, filePath, patchFile):
         patch_cmd = "bspatch %s %s %s" % \
             (self.fileWithSuffix(filePath, '.dec'), self.fileWithSuffix(filePath, '.dec.p'), path.join(self.bundleDir, patchFile))
-        if self.verbose:
-            print "Patching: '%s'" % patch_cmd
-        os.system(patch_cmd)
+
+        self.run(patch_cmd, "Patching")
 
     def diff_llb(self, patch, x_opt):
         filePath = patch [ 'File' ]
         patchFile = patch [ 'Patch' ]
-        encrypt_cmd = "xpwntool %s %s -t %s -x%s -iv %s -k %s" % \
-            (self.fileWithSuffix(filePath, ".dec.ap"), self.fileWithSuffix(filePath, '.ap'), \
+        encrypt_cmd = "%s/xpwntool %s %s -t %s -x%s -iv %s -k %s" % \
+            (self.tooldir, self.fileWithSuffix(filePath, ".dec.ap"), self.fileWithSuffix(filePath, '.ap'), \
             path.join(self.ipswDir, filePath) , x_opt , patch['IV'], patch['Key'])
         
-        if self.verbose:
-            print "Encrypting LLB: '%s'" % encrypt_cmd
-        os.system(encrypt_cmd)
+        self.run(encrypt_cmd, "Encrypting LLB")
         
         diff_cmd = "bsdiff %s %s %s" % \
             (path.join(self.ipswDir, filePath), self.fileWithSuffix(filePath, '.ap'), path.join(self.bundleDir, patchFile))
 
-        if self.verbose:
-            print "Diffing LLB: '%s'" % diff_cmd
-        os.system(diff_cmd)
+        self.run(diff_cmd, "Diffing LLB")
 
+            
     def ldid(self, path):
-        ldid_cmd = "ldid -s %s" % path
-        if self.verbose:
-            print "Pseudosigning: '%s'" % ldid_cmd
-        os.system(ldid_cmd)
-    
-    def fuzzy_patch(self, patch, origPath, patchedPath):
-        deltaFile = patch['Pattern']
-        fzp_cmd = "fuzzy_patcher --fuzz 80 --patch --orig %s --patched %s --delta %s" % \
-            (origPath, patchedPath, path.join(self.outDir, "_json", deltaFile + ".patch.json")) 
+        ldid_cmd = "%s/ldid -s %s" % (self.tooldir, path)
         
-        if self.verbose:
-            print "Fuzzy patching: '%s'" % fzp_cmd
-        os.system(fzp_cmd)
+        self.run(ldid_cmd, "Pseudosigning")
+
+            
+    def kpatch(self, patch, patchedPath):
+        if not self.kcOrig or len(self.kcOrig) == 0:
+            raise Exception("kernelcache patch needs to precede any patches using 'kpatch' attribute")
+        orig = patchedPath + ".pre"
+        os.rename(patchedPath, orig)
+        kpatch_cmd = "%s/tools_src/ibss_kpatch/ibss_patcher.py %s %s %s %s %s/tools_bin/ios/ibss_patchproc.bin" % \
+            (self.basedir, orig, patchedPath, self.kcOrig, self.kcPatched, self.basedir)
+
+        self.run(kpatch_cmd, "Running ibss_patcher")
+
+
+    def text_patch(self, patch, origPath, patchedPath):
+        pattern = patch['Pattern']
+        textfile = path.join(self.outDir, "_json", pattern + ".patch") 
+        if not os.path.isfile(textfile):
+            raise Exception("Pattern %s references a non-existing file: %s" % \
+                            (pattern, textfile))
+        txp_cmd = "patch -o %s %s %s" % \
+            (patchedPath, origPath, textfile) 
+
+        self.run(txp_cmd, "Patching as text")
+        
+
+    def fuzzy_patch(self, patch, origPath, patchedPath):
+        pattern = patch['Pattern']
+        jsonfile = path.join(self.outDir, "_json", pattern + ".patch.json") 
+        if not os.path.isfile(jsonfile):
+            self.text_patch(patch, origPath, patchedPath)
+            return
+        
+        fzp_cmd = "%s/fuzzy_patcher --fuzz 80 --patch --orig %s --patched %s --delta %s" % \
+            (self.tooldir, origPath, patchedPath, jsonfile) 
+        
+        self.run(fzp_cmd, "Fuzzy patching")
+        
+        if pattern.lower().startswith("kernel"):
+            self.kcOrig = origPath
+            self.kcPatched = patchedPath
+
+        if 'kpatch' in patch:
+            self.kpatch(patch, patchedPath)
 
         # TODO: MACH binary detection?
         if not path.basename(origPath).startswith('asr'):
@@ -81,7 +121,6 @@ class BundleParser:
             
     def diff_file(self, patch, isFirmwarePatch):
         filePath = patch['File']
-        patchFile = patch['Patch']
 
         if isFirmwarePatch:
             orig_suffix = '.dec'
@@ -96,6 +135,11 @@ class BundleParser:
         if 'Pattern' in patch:
             self.fuzzy_patch(patch, origPath, patchedPath)
         
+        if not 'Patch' in patch: # could be a kc entry without actual patch file
+            return
+        
+        patchFile = patch['Patch']
+            
         if path.basename(filePath).startswith('LLB') and self.x_opt:
             self.diff_llb(patch, self.x_opt)
             return 
@@ -103,40 +147,30 @@ class BundleParser:
         diff_cmd = "bsdiff %s %s %s" % \
             (origPath, patchedPath, path.join(self.bundleDir, patchFile)) 
 
-        if self.verbose:
-            print "Diffing: '%s'" % diff_cmd
-        os.system(diff_cmd)
+        self.run(diff_cmd, "Diffing")
 
     def decrypt_rootfs(self):
         key = self.infoPlist['RootFilesystemKey']
         dmg = self.infoPlist['RootFilesystem']
         
-        vfdecrypt_cmd = "vfdecrypt -i %s -o %s -k %s" % \
-            (path.join(self.ipswDir, dmg), self.fileWithSuffix(dmg, '.dec'), key)
+        vfdecrypt_cmd = "%s/vfdecrypt -i %s -o %s -k %s" % \
+            (self.tooldir, path.join(self.ipswDir, dmg), self.fileWithSuffix(dmg, '.dec'), key)
             
-        if self.verbose:
-            print "vfdecrypt: '%s'" % vfdecrypt_cmd
-        
-        os.system(vfdecrypt_cmd)
-        
+        self.run(vfdecrypt_cmd, "vfdecrypt")
+                
         mount_cmd = "hdiutil attach %s" % self.fileWithSuffix(dmg, '.dec')
         
-        if self.verbose:
-            print "hdiutil: '%s'" % mount_cmd
-            
-        os.system(mount_cmd)
+        self.run(mount_cmd, "hdiutil")
+
 
     def fspatch_extract_callback(self, patch):
-        if not 'Patch' in patch:
+        if not 'Patch' in patch and not 'Pattern' in patch:
             return
         filePath = patch['File']
         mountpoint = path.join('/Volumes', self.infoPlist['RootFilesystemMountVolume'])
         cp_cmd = "cp %s %s" % (path.join(mountpoint, filePath), self.fileWithSuffix(filePath, ""))
 
-        if self.verbose:
-            print "cp: '%s'" % cp_cmd
-            
-        os.system(cp_cmd)	
+        self.run(cp_cmd, "cp")	
 
     def mount_ramdisk(self):
         firmwarePatches = self.infoPlist['FirmwarePatches']
@@ -147,10 +181,7 @@ class BundleParser:
         
         mount_cmd = "hdiutil attach %s" % self.fileWithSuffix(filePath, '.dec')
         
-        if self.verbose:
-            print "hdiutil: '%s'" % mount_cmd
-            
-        os.system(mount_cmd)
+        self.run(mount_cmd, "hdiutil")
 
     def fwpatch_decrypt_callback(self, patch, patchKey):
         if not 'IV' in patch:
@@ -165,7 +196,7 @@ class BundleParser:
             self.diff_file(patch, isFirmwarePatch = False)
 
     def fwpatch_create_callback(self, patch, patchKey):
-        if 'Patch' in patch:
+        if 'Patch' in patch or 'Pattern' in patch:
             self.diff_file(patch, isFirmwarePatch = True)
 
     def foreach_fwpatch(self, callback):
@@ -193,10 +224,7 @@ class BundleParser:
         mountpoint = path.join('/Volumes', self.infoPlist[ramdiskKey])
         cp_cmd = "cp %s %s" % (path.join(mountpoint, filePath), self.fileWithSuffix(filePath, ""))
         
-        if self.verbose:
-            print "cp: '%s'" % cp_cmd
-            
-        os.system(cp_cmd)	
+        self.run(cp_cmd, "cp")	
 
     def foreach_rdpatch(self, callback):
         rdPatches = self.infoPlist['RamdiskPatches']
@@ -212,10 +240,7 @@ class BundleParser:
             
             umount_cmd = "hdiutil detach %s" % mountpoint
             
-            if self.verbose:
-                print "Unmount: '%s'" % umount_cmd
-                
-            os.system(umount_cmd)			
+            self.run(umount_cmd, "Unmount")			
 
     def process_info_plist(self):
         self.infoPlist = plistlib.readPlist(path.join(self.bundleDir, 'Info.plist'))

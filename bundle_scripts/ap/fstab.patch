@@ -1,0 +1,7 @@
+--- fstab	2011-08-08 04:44:36.000000000 +0400
++++ fstab.ap	2011-08-08 04:46:01.000000000 +0400
+@@ -1,2 +1,2 @@
+-/dev/disk0s1 / hfs ro 0 1
+-/dev/disk0s2 /private/var hfs rw,nosuid,nodev 0 2
++/dev/disk0s1 / hfs rw 0 1
++/dev/disk0s2 /private/var hfs rw 0 2

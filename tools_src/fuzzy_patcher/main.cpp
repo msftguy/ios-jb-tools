@@ -321,11 +321,11 @@ void topX(const ratingsVector &r, int patchOffset, std::string prefix)
 	std::cout << prefix << "Top" << r.size() << ": " << std::endl;
 	for (unsigned int j = 0; j < r.size(); ++j) {
 		const ratingAtPos &x = r[j];
-		printf("%s%.2f at 0x%08X\n", prefix.c_str(), x.first, x.second + patchOffset);		
+		printf("%s%.2f at 0x%08zX\n", prefix.c_str(), x.first, x.second + patchOffset);		
 	}
 }
 
-void patchFiles(const std::string origPath, const std::string patchedPath, const std::string deltaPath) 
+int patchFiles(const std::string origPath, const std::string patchedPath, const std::string deltaPath) 
 {
 	boost::iostreams::mapped_file_source orig = boost::iostreams::mapped_file_source(origPath);
 	boost::iostreams::mapped_file_params params;
@@ -372,11 +372,11 @@ void patchFiles(const std::string origPath, const std::string patchedPath, const
 			std::cout << "|\tMultiple matches" << std::endl;
 			topX(r, p.PatchOffset(), "|\t");
 		} else {
-			printf("|\tExactly one match at 0x%08X\n", patchLocation);
+			printf("|\tExactly one match at 0x%08zX\n", patchLocation);
 			fApply = true;
 		}
 		if (fApply) {
-			printf("\\\\\\---Patch %u applied at 0x%08X\n", i + 1, patchLocation);						
+			printf("\\\\\\---Patch %u applied at 0x%08zX\n", i + 1, patchLocation);						
 			memcpy(patched.data() + patchLocation, p.PatchBytes().data(), p.PatchBytes().size());
 			++cApplied;
 		} else {
@@ -385,7 +385,8 @@ void patchFiles(const std::string origPath, const std::string patchedPath, const
 		}
 	}
 	printf("===============================================================================\n");
-	printf("%u of %u applied (%.0f%%)\n",cApplied, matches.size(), 100.0 * cApplied / matches.size());			
+	printf("%u of %zu applied (%.0f%%)\n",cApplied, matches.size(), 100.0 * cApplied / matches.size());
+    return cSkipped;
 }
 
 int main(int argc, char** argv) {
@@ -431,15 +432,16 @@ int main(int argc, char** argv) {
 	std::string patched = vm["patched"].as<std::string>();
 	std::string delta = vm["delta"].as<std::string>();
 	
+    int result = 0;
 	try {
 		if (vm.count("diff")) {
 			diffFiles(orig, patched, delta);
 		} else if (vm.count("patch")) {
-			patchFiles(orig, patched, delta);
+			result = patchFiles(orig, patched, delta);
 		}
 	} catch (std::exception &ex) {
 		std::cerr << "Error: " << ex.what() << std::endl;
 		exit(1);
 	}
-	return 0;
+	return result;
 }
