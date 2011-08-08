@@ -15,8 +15,8 @@ class BundleParser:
         self.verbose = verbose
         self.kcOrig = ""
         self.kcPatched = ""
-        self.basedir = os.path.dirname(__file__) + "/../"
-        self.tooldir =  self.basedir + "tools_bin/osx/"
+        self.basedir = os.path.dirname(__file__) 
+        self.tooldir =  self.basedir + "/tools_bin/osx/"
 
 
     def run(self, cmd, comment):
@@ -201,7 +201,9 @@ class BundleParser:
 
     def foreach_fwpatch(self, callback):
         firmwarePatches = self.infoPlist['FirmwarePatches']
-        for patchKey in firmwarePatches:
+        keys = firmwarePatches.keys()
+        keys.sort()
+        for patchKey in keys:
             patch = firmwarePatches[patchKey]
             callback(patch, patchKey)
 
