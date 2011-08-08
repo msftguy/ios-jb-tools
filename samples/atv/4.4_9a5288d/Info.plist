@@ -34,10 +34,12 @@
 			</dict>
 		</array>
 	</dict>
-	<key>FirmwarePatches</key>
+	<key>_FirmwarePatches</key>
 	<dict>
 		<key>_kernelcache</key>
 		<dict>
+			<key>Patch</key>
+			<string>kernelcache.release.patch</string>
 			<key>Pattern</key>
 			<string>kernel</string>
 			<key>File</key>
@@ -47,6 +49,24 @@
 			<key>Key</key>
 			<string>42dead45d5fd04eac74b07fa97b9bf30b87e307888fc2a4e2222d27eaca3b965</string>
 		</dict>
+		<key>iBoot</key>
+		<dict>
+			<key>Patch</key>
+			<string>iBoot.k66ap.RELEASE.patch</string>
+			<key>kpatch</key>
+			<true/>
+			<key>Pattern</key>
+			<string>nor</string>
+			<key>File</key>
+			<string>Firmware/all_flash/all_flash.k66ap.production/iBoot.k66ap.RELEASE.img3</string>
+			<key>IV</key>
+			<string>1f4f5f296549b6b8b53f3f47b482cefe</string>
+			<key>Key</key>
+			<string>d038e99ee9bad3f52b86db6b719464f148deb5d3d31d22d375e72059da00a612</string>
+		</dict>
+	</dict>
+	<key>FirmwarePatches</key>
+	<dict>
 		<key>iBSS</key>
 		<dict>
 			<key>Pattern</key>
@@ -89,19 +109,6 @@
 			<string>iBEC.k66ap.RELEASE.patch</string>
 			<key>TypeFlag</key>
 			<integer>8</integer>
-		</dict>
-		<key>iBoot</key>
-		<dict>
-			<key>kpatch</key>
-			<true/>
-			<key>Pattern</key>
-			<string>nor</string>
-			<key>File</key>
-			<string>Firmware/all_flash/all_flash.k66ap.production/iBoot.k66ap.RELEASE.img3</string>
-			<key>IV</key>
-			<string>1f4f5f296549b6b8b53f3f47b482cefe</string>
-			<key>Key</key>
-			<string>d038e99ee9bad3f52b86db6b719464f148deb5d3d31d22d375e72059da00a612</string>
 		</dict>
 	</dict>
 	<key>RamdiskPatches</key>

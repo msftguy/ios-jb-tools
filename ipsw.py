@@ -200,10 +200,17 @@ class BundleParser:
             self.diff_file(patch, isFirmwarePatch = True)
 
     def foreach_fwpatch(self, callback):
+        if '_FirmwarePatches' in self.infoPlist:
+            firmwarePatches = self.infoPlist['_FirmwarePatches']
+            keys = firmwarePatches.keys()
+            keys.sort()
+            
+            for patchKey in keys:
+                patch = firmwarePatches[patchKey]
+                callback(patch, patchKey)
+        
         firmwarePatches = self.infoPlist['FirmwarePatches']
-        keys = firmwarePatches.keys()
-        keys.sort()
-        for patchKey in keys:
+        for patchKey in firmwarePatches:
             patch = firmwarePatches[patchKey]
             callback(patch, patchKey)
 
