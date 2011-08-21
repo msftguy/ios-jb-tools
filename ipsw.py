@@ -46,10 +46,14 @@ class BundleParser:
         self.run(decrypt_cmd, "Decrypting")
 
     def patch_file(self, filePath, patchFile):
+        bspatch = path.join(self.bundleDir, patchFile)
         patch_cmd = "bspatch %s %s %s" % \
-            (self.fileWithSuffix(filePath, '.dec'), self.fileWithSuffix(filePath, '.dec.p'), path.join(self.bundleDir, patchFile))
+            (self.fileWithSuffix(filePath, '.dec'), self.fileWithSuffix(filePath, '.dec.p'), bspatch)
 
-        self.run(patch_cmd, "Patching")
+        if os.path.isfile(bspatch):
+            self.run(patch_cmd, "Patching")
+        else:
+            print "Not patching %s, %s file not found" % (filePath, patchFile)
 
     def diff_llb(self, patch, x_opt):
         filePath = patch [ 'File' ]
@@ -168,7 +172,7 @@ class BundleParser:
             return
         filePath = patch['File']
         mountpoint = path.join('/Volumes', self.infoPlist['RootFilesystemMountVolume'])
-        cp_cmd = "cp %s %s" % (path.join(mountpoint, filePath), self.fileWithSuffix(filePath, ""))
+        cp_cmd = "cp -f %s %s" % (path.join(mountpoint, filePath), self.fileWithSuffix(filePath, ""))
 
         self.run(cp_cmd, "cp")	
 
@@ -231,7 +235,7 @@ class BundleParser:
         if not ramdiskKey:
             return
         mountpoint = path.join('/Volumes', self.infoPlist[ramdiskKey])
-        cp_cmd = "cp %s %s" % (path.join(mountpoint, filePath), self.fileWithSuffix(filePath, ""))
+        cp_cmd = "cp -f %s %s" % (path.join(mountpoint, filePath), self.fileWithSuffix(filePath, ""))
         
         self.run(cp_cmd, "cp")	
 

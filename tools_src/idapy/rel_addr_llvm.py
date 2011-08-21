@@ -27,8 +27,12 @@ def main():
     movtVal = dict()
 
     refs = []
+    cnt = 0
     while True:
+        cnt += 1
         ea = NextHead(ea)
+        if cnt & 0xfff == 0:
+            print "[progress] ea: %x" % ea
         if ea == BADADDR:
             break
         if not idaapi.isCode(idaapi.getFlags(ea)):
@@ -36,6 +40,8 @@ def main():
         numInst += 1
         # slow, is there any way to avoid it?..
         i = DecodeInstruction(ea)
+        if not i:
+            continue
         mnem = i.get_canon_mnem()
 
         if i[0].type != 1: # only interested in register target operands
