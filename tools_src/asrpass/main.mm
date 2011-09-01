@@ -27,13 +27,19 @@ void dlentry()
 		exit(1);
 	}
 	CFStringRef (*getpass_fn)();
-	if (!sscanf(getpass_proc, "%p", &getpass_fn) ) {
+	typedef CFStringRef (*getpass_fn_t)();
+    char* ptr = nil;
+	if (!sscanf(getpass_proc, "%p", &ptr) ) {
 		fprintf(stderr, "ASR_GETPASS_PROC envvar must be a hex number!\n");
 		fflush(stderr);	
 		exit(1);
 	}
-	hook_api();
-	CFStringRef passphrase = getpass_fn();
+    ptr += _dyld_get_image_vmaddr_slide(0);
+    getpass_fn = (getpass_fn_t)ptr;
+    fprintf(stderr, "ASR_GETPASS_PROC is at %p\n", getpass_fn);
+    fflush(stderr);		
+    hook_api();
+    CFStringRef passphrase = getpass_fn();
 	char passBuf[0x100];
 	CFStringGetCString(passphrase, passBuf, sizeof(passBuf), kCFStringEncodingASCII);
 	fprintf(stderr, "Passphrase: %s\n", passBuf);

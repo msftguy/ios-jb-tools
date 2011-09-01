@@ -49,6 +49,16 @@ ssize_t my_pread(int fd, void* buf, size_t size, off_t offset)
 	return pread(fd, buf, size, offset);
 }
 
+const void* my_CFDataGetBytePtr(CFDataRef ref)
+{
+    const void* result = CFDataGetBytePtr(ref);
+    if (result != nil) {
+        fprintf(stderr, "Plat: %s\n", (char*)result);
+        fflush(stderr);
+    }
+    return result;
+}
+
 bool hook_api() 
 {
 	const char* moduleName = "asr";
@@ -69,10 +79,13 @@ bool hook_api()
 	uintptr_t* pOpenImp = get_import_ptr(mh, "_open");
 	uintptr_t* pIoctlImp = get_import_ptr(mh, "_ioctl");
 	uintptr_t* pPreadImp = get_import_ptr(mh, "_pread");
+	uintptr_t* pCFDataGetBytePtr = get_import_ptr(mh, "_CFDataGetBytePtr");
 	
 	*pOpenImp = (uintptr_t)my_open;
 	*pIoctlImp = (uintptr_t)my_ioctl;
 	*pPreadImp = (uintptr_t)my_pread;
+    *pCFDataGetBytePtr=(uintptr_t)my_CFDataGetBytePtr;
+    
 	fprintf(stderr, "ASR io hooked!\n");
 	fflush(stderr);
 	return YES;
