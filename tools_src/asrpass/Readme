@@ -8,3 +8,4 @@ How to find 'getpassphrase' proc:
 3. It the only xref of cfstr_PlatformName (which is a constant CFStringRef that xrefs "platform-name" string)
 4. getpassphrase_main calls ioctl with args 0x40046418 and 0x40086419 - you can check _ioctl xrefs to locate it
 5. Don't forget to add 1 to the address if it's a Thumb proc, duh
+6. Use -h option in modified genpass (https://github.com/msftguy/genpass) to derive the vfdecrypt key from password and rootfs dmg
