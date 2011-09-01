@@ -1,3 +1,10 @@
 Install the compiled lib to /usr/lib/asrpass.dylib
 Copy asr to /tmp/asr and copy required private frameworks to the device
 To run: LD_INSERT_LIBRARIES=/usr/lib/asrpass.dylib ASR_RAMDISK=CHANGEME_path_to_decrypted_ramdisk_dmg ASR_GETPASS_PROC=CHANGEME_address_of_getpassphrase_in_asr /tmp/asr
+How to find 'getpassphrase' proc:
+0. Use https://github.com/msftguy/ios-jb-tools/blob/master/tools_src/idapy/rel_addr_llvm.py to fix xrefs on iOS5, until it's fixed in IDA (not fixed yet as of 6.1)
+1. The name 'getpassphrase isn't the one Apple gave it, just how I think it should be named
+2. It calls the proc that does the actual work (getpassphrase_main) with two args: volume mount point and platform name.
+3. It the only xref of cfstr_PlatformName (which is a constant CFStringRef that xrefs "platform-name" string)
+4. getpassphrase_main calls ioctl with args 0x40046418 and 0x40086419 - you can check _ioctl xrefs to locate it
+5. Don't forget to add 1 to the address if it's a Thumb proc, duh
