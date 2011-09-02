@@ -16,7 +16,24 @@ import struct
 #
 # idaapi.add_dref() sometimes silently fails - just rerun the script to get more xrefs ;)
 
+refs = []
+
+def add_refs():
+    global refs
+    
+    for (ea, target_addr, target_name) in refs:
+        if target_name and len(target_name) != 0:
+            idaapi.set_cmt(ea, "%s - 0x%X" % (target_name, ea + 4), False)
+        else:
+            idaapi.set_cmt(ea, "0x%X - 0x%X" % (target_addr, ea + 4), False)
+        idaapi.add_dref(ea, target_addr, dr_O)
+
+
 def main():
+    
+    # wait till autoanalysis is done
+    idaapi.autoWait()
+    
     ea = 0
     numInst = 0
     numAddRegPc = 0
@@ -25,8 +42,8 @@ def main():
     # last MOV/MOVT inst targeting the register, key=register number
     movVal = dict()
     movtVal = dict()
-
-    refs = []
+    global refs
+    
     cnt = 0
     while True:
         cnt += 1
@@ -77,18 +94,15 @@ def main():
             movtVal[target_reg] = (0, 0)
     print "%u instructions scanned in %f seconds" % (numInst, time.clock() - t0)
 
-    for (ea, target_addr, target_name) in refs:
-        if target_name and len(target_name) != 0:
-            idaapi.set_cmt(ea, "%s - 0x%X" % (target_name, ea + 4), False)
-        else:
-            idaapi.set_cmt(ea, "0x%X - 0x%X" % (target_addr, ea + 4), False)
-        idaapi.add_dref(ea, target_addr, dr_O)
+    add_refs()
 
     if numAddRegPc == 0:
         successRate = 100
     else:
         successRate = numFixed * 100.0 / numAddRegPc
     print "%u 'ADD Reg, PC' found, %u fixed: %u%%"  % (numAddRegPc, numFixed, successRate)
+
+    print "run 'add_refs()' again a couple of times to mitigate IDA's bugs"
 
 if __name__ == "__main__":
     main()
