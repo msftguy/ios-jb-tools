@@ -1,3 +1,4 @@
+import idc
 import idaapi
 import idautils
 
@@ -26,10 +27,16 @@ def add_refs():
             idaapi.set_cmt(ea, "%s - 0x%X" % (target_name, ea + 4), False)
         else:
             idaapi.set_cmt(ea, "0x%X - 0x%X" % (target_addr, ea + 4), False)
-        idaapi.add_dref(ea, target_addr, dr_O)
+        idaapi.add_dref(ea, target_addr, idc.dr_O)
 
+g_done = 0
 
-def main():
+def ensure_all():
+    global g_done
+    if g_done == 0:
+        fix_all()
+
+def fix_all():
     
     # wait till autoanalysis is done
     idaapi.autoWait()
@@ -47,16 +54,16 @@ def main():
     cnt = 0
     while True:
         cnt += 1
-        ea = NextHead(ea)
+        ea = idc.NextHead(ea)
         if cnt & 0xfff == 0:
             print "[progress] ea: %x" % ea
-        if ea == BADADDR:
+        if ea == idc.BADADDR:
             break
         if not idaapi.isCode(idaapi.getFlags(ea)):
             continue
         numInst += 1
         # slow, is there any way to avoid it?..
-        i = DecodeInstruction(ea)
+        i = idautils.DecodeInstruction(ea)
         if not i:
             continue
         mnem = i.get_canon_mnem()
@@ -96,13 +103,22 @@ def main():
 
     add_refs()
 
+    # work around an IDA bug
+    for i in range (1, 5):
+	idaapi.autoWait()
+    	add_refs()
+
     if numAddRegPc == 0:
         successRate = 100
     else:
         successRate = numFixed * 100.0 / numAddRegPc
     print "%u 'ADD Reg, PC' found, %u fixed: %u%%"  % (numAddRegPc, numFixed, successRate)
 
-    print "run 'add_refs()' again a couple of times to mitigate IDA's bugs"
+    global g_done
+    g_done = 1
+
+def main():
+    fix_all()
 
 if __name__ == "__main__":
     main()
