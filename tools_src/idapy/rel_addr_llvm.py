@@ -3,7 +3,7 @@ import idaapi
 import idautils
 
 import time
-import struct
+import inspect
 
 # Fixes IDA's bug that it doesn't understand
 #   MOV.W Rn, imm16
@@ -50,11 +50,17 @@ def fix_all():
     movVal = dict()
     movtVal = dict()
     global refs
-    
+
+    #old ver compat
+    nextHeadArgCount = len(inspect.getargspec(idc.NextHead).args)
+
     cnt = 0
     while True:
         cnt += 1
-        ea = idc.NextHead(ea)
+        if nextHeadArgCount == 1:
+            ea = idc.NextHead(ea)
+        else:
+            ea = idc.NextHead(ea, idc.BADADDR)
         if cnt & 0xfff == 0:
             print "[progress] ea: %x" % ea
         if ea == idc.BADADDR:
