@@ -1,4 +1,5 @@
 asrpass - in case Apple changes its password generation algorithm in asr, you can use this to generate vfdecrypt password (not the same thing as vfdecrypt key) using Apple's own asr binary.
+bootrom_dump - If bootrom is mapped when ibss/ibec is loaded, copy it to a pattern-filled file on the ramdisk; to be later read via SSH
 ConsoleApplication1 - First version of fuzzy_patcher, written in C#
 dif_patcher - apply .dif file produced by IDA to binary. C# (just write your own in Python if you're not on Windows)
 fuzzy_patcher - probabilistic pattern matching and patch extraction tool; used to transfer binary patches to new FW versions without having to boot IDA. Rewritten in C++ (needs Boost)

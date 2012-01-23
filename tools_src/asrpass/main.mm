@@ -9,6 +9,7 @@
 #include "main.h"
 
 const char* g_asrRamdisk;
+const char* g_asrPlat;
 
 extern "C" void dlentry();
 void dlentry()
@@ -26,6 +27,7 @@ void dlentry()
 		fflush(stderr);
 		exit(1);
 	}
+    g_asrPlat = getenv("ASR_PLATFORM");
 	CFStringRef (*getpass_fn)();
 	typedef CFStringRef (*getpass_fn_t)();
     char* ptr = nil;

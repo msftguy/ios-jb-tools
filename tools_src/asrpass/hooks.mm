@@ -55,6 +55,8 @@ const void* my_CFDataGetBytePtr(CFDataRef ref)
     if (result != nil) {
         fprintf(stderr, "Plat: %s\n", (char*)result);
         fflush(stderr);
+        if (g_asrPlat)
+            return g_asrPlat;
     }
     return result;
 }

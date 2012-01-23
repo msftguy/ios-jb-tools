@@ -10,3 +10,4 @@
 #include "hooks.h"
 
 extern const char* g_asrRamdisk;
+extern const char* g_asrPlat;
